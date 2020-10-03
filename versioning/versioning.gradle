@@ -1,0 +1,163 @@
+//
+// Task group "Versioning" to manage Semver versioning
+// https://semver.org
+//
+
+ext {
+    majorName = "major = "
+    minorName = "minor = "
+    patchName = "patch = "
+
+    majorNameLength = majorName.length()
+    minorNameLength = minorName.length()
+    patchNameLength = patchName.length()
+
+    version = "0.0.0"
+    major = 0
+    minor = 0
+    patch = 0
+}
+
+loadVersionFile()
+
+def getVersionFile() {
+    return new File("${project.projectDir}/version.properties")
+}
+
+def saveVersionFile() {
+    getVersionFile().write("${majorName}${major}\n${minorName}${minor}\n${patchName}${patch}\n")
+}
+
+def loadVersionFile() {
+    File f = getVersionFile()
+    if (!f.exists()) saveVersionFile()
+    List<String> strings = f.readLines()
+    for (String s : strings) {
+        if (s.startsWith(majorName)) {
+            major = Integer.parseInt(s.substring(majorNameLength))
+        }
+        if (s.startsWith(minorName)) {
+            minor = Integer.parseInt(s.substring(minorNameLength))
+        }
+        if (s.startsWith(patchName)) {
+            patch = Integer.parseInt(s.substring(patchNameLength))
+        }
+    }
+}
+
+def version() {
+    version = major + "." + minor + "." + patch
+    return version
+}
+
+task versioning() {
+    description 'Info Versioning'
+    group 'gsp'
+
+    doLast {
+        println 'This script is used to version your releases to use it to its full extend you should use'
+        println 'the plugin "maven-publish". This script should be applied after the "group" variable'
+        println 'definition in your "build.gradle", to work properly.'
+        println ''
+        println 'File creates : version.properties'
+        println 'File uses    : version.properties'
+    }
+}
+
+task incrementMajor() {
+    description 'Increment Major Version'
+    group 'gsp.versioning'
+
+    doLast {
+        major++
+        minor = 0
+        patch = 0
+
+        createVersionString()
+        saveVersionFile()
+    }
+}
+
+task incrementMinor() {
+    description 'Increment Minor Version'
+    group 'gsp.versioning'
+
+    doLast {
+        minor++
+        patch = 0
+
+        createVersionString()
+        saveVersionFile()
+    }
+}
+
+task incrementPatch() {
+    description 'Increment Patch Version'
+    group 'gsp.versioning'
+
+    doLast {
+        patch++
+
+        createVersionString()
+        saveVersionFile()
+    }
+}
+
+if (!project.tasks.findByName('publishToMavenLocal')) {
+    return
+}
+if (!project.properties.containsKey("groupID")) {
+    project.logger.lifecycle("Please define a property 'groupID' in 'ext{...}' to enable Maven-Release tasks")
+    return
+}
+if (project.properties.get("groupID").toString().isBlank()) {
+    throw new StopExecutionException("'groupID' cannot be an empty string")
+}
+
+publishing {
+    repositories {
+        maven {
+            url = "${rootDir}/releases"
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            groupId = groupID
+            artifactId = group
+            version = version()
+
+            from components.java
+        }
+    }
+}
+
+task mavenPublish {
+    description "Publish this project into '${rootDir}/releases' directory"
+    group "gsp.versioning"
+
+    finalizedBy publishMavenPublicationToMavenRepository
+
+    doFirst {
+        File f = new File("${rootDir}/releases/${groupID}/${project.properties.get("group")}/${version()}")
+        setExecution(true)
+        if (!f.exists()) {
+            return
+        }
+
+        if (!answer("Version already exists. Do you want to proceed? [Yn]")) {
+            setExecution(false)
+        }
+    }
+}
+
+def setExecution(boolean value) {
+    generateMetadataFileForMavenPublication.enabled = value
+    generatePomFileForMavenPublication.enabled = value
+    publishMavenPublicationToMavenRepository.enabled = value
+}
+
+def answer(String question) {
+    while (System.in.available() > 0) System.in.read()
+    println(question)
+    return "Yy".contains(((char)System.in.read()).toString())
+}

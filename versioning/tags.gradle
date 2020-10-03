@@ -1,0 +1,45 @@
+//
+// Task group "Tags" to manage Git tagging
+//
+
+task tags() {
+    description 'Info Tags'
+    group 'gsp'
+
+    doLast {
+        println 'This script is used to version your git commits with git tags. It uses the versioning'
+        println 'script to get the current version number. This script should be applied after the'
+        println '"versioning.gradle" script is applied, to work properly.'
+        println ''
+        println 'Executes in   : bash'
+        println 'Command  uses : git tag'
+        println 'Format        : "V${version}"'
+    }
+}
+
+if (!project.tasks.findByName('versioning')) {
+    return
+}
+
+def version() {
+    return major + "." + minor + "." + patch
+}
+
+task mavenTag() {
+    description 'Create a new tag for the last commit'
+    group 'gsp.versioning'
+
+    doLast {
+        shell("git tag \"V${version()}\"")
+        println 'Use "git push --tags" to push this tag to your origin'
+    }
+}
+
+def shell(String command) {
+    def proc = ['bash', '-c', command].execute()
+    def out = new StringBuilder()
+    def err = new StringBuilder()
+    proc.waitForProcessOutput(out, err)
+
+    return [out.toString().trim(), err.toString().trim(), proc.exitValue()]
+}
