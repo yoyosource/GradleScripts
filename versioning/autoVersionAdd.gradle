@@ -1,0 +1,50 @@
+//
+// Task group "autoVersionAdd" to manage "versioning" automation
+//
+
+task autoVersionAdd() {
+    description 'Info AutoVersionAdd'
+    group 'gsp'
+
+    doLast {
+        println 'This script is used to automate your versioning. It is build on top of the versioning'
+        println 'script. This script should be applied after the "versioning.gradle" script is applied,'
+        println 'to work properly.'
+        println ''
+        println 'Executes in   : bash'
+        println 'Command  uses : git add'
+    }
+}
+
+if (!project.tasks.findByName('versioning')) {
+    return
+}
+
+def version() {
+    return major + "." + minor + "." + patch
+}
+
+task mavenPublishFinish {
+    description "Automatically add the current released version to you git repository"
+    group "gsp.versioning"
+
+    doFirst {
+        shell("git add ${releasePath}/${version()}/")
+        shell("git add version.properties")
+        shell("git add ${releasePath}/maven-metadata.xml")
+        shell("git add ${releasePath}/maven-metadata.xml.md5")
+        shell("git add ${releasePath}/maven-metadata.xml.sha1")
+        shell("git add ${releasePath}/maven-metadata.xml.sha256")
+        shell("git add ${releasePath}/maven-metadata.xml.sha512")
+    }
+}
+mavenPublish.finalizedBy mavenPublishFinish
+
+def shell(String command) {
+    def proc = ['bash', '-c', command].execute()
+    def out = new StringBuilder()
+    def err = new StringBuilder()
+    proc.waitForProcessOutput(out, err)
+
+    return [out.toString().trim(), err.toString().trim(), proc.exitValue()]
+}
