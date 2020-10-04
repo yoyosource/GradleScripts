@@ -1,8 +1,8 @@
 //
-// Task group "autoVersionAdd" to manage "versioning" automation
+// Task group "AutoVersioning" to manage "versioning" automation
 //
 
-task autoVersionAdd() {
+task autoVersioning() {
     description 'Info AutoVersionAdd'
     group 'gsp'
 
