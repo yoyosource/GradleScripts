@@ -6,5 +6,5 @@ Each Script has group named as the package with 'gsp.' before it and has one tas
 
 These scripts are written in Gradle 6.6.1. To apply any script in this repository use the line below.
 ```groovy
-apply from: '${path}/${namee}.gradle'
+apply from: '${path}/${name}.gradle'
 ```
